@@ -145,7 +145,20 @@ export const usersModel = model('users', schema)
      }
    }
 
-
+   async cambiarRolUsuario(userId, newRole) {
+    try {
+      // Validar el nuevo rol
+      if (newRole !== 'user' && newRole !== 'premium') {
+        throw new Error('El rol proporcionado no es válido');
+      }
+  
+      // Actualizar el rol del usuario en la base de datos
+      const updatedUser = await usersModel.findByIdAndUpdate(userId, { role: newRole }, { new: true });
+      return updatedUser;
+    } catch (error) {
+      throw new Error(`Error al cambiar el rol del usuario: ${error.message}`);
+    }
+  }
 }
 
 

@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { randomUUID } from 'crypto';
-import { productDao } from './index.js';
+import { productDao , usersDao} from './index.js';
 
 const schemaCarrito = new Schema({
   _id: { type: String, default: randomUUID },
@@ -81,31 +81,42 @@ export class CartDao {
   };
 
   // Añadir un producto al carrito o incrementar la cantidad si ya existe
-  async agregarProductoAlCarrito(carritoId, productoId) {
+  async agregarProductoAlCarrito(carritoId, productoId, usuarioId) {
     try {
       // Obtener el producto que se va a agregar al carrito
       const producto = await productDao.obtenerProductoPorId(productoId);
-
+  
       if (!producto) {
         throw new Error('Producto no encontrado');
       }
-
+  
+      // Obtener información del usuario
+      const usuario = await usersDao.findByIdUser(usuarioId);
+  
+      // Verificar si el usuario es premium
+      const isPremium = usuario.rol === 'premium';
+  
+      // Evitar que un usuario premium agregue su propio producto al carrito
+      if (isPremium && producto.owner.toString() === usuario._id) {
+        throw new Error('No puedes agregar tu propio producto al carrito como usuario premium');
+      }
+  
       // Verificar si el producto ya existe en el carrito
       const productExist = await Carrito.findOne({
         _id: carritoId,
-        'carrito.productID': productoId
+        'carrito.productID': productoId,
       });
-
+  
       if (productExist) {
         // Producto ya existe en el carrito, incrementar cantidad y actualizar totalAmount
         const updProduct = await Carrito.findOneAndUpdate(
           {
             _id: carritoId,
-            'carrito.productID': productoId
+            'carrito.productID': productoId,
           },
           {
             $inc: { 'carrito.$.cant': 1 },
-            $inc: { totalAmount: producto.price } // Incrementar el totalAmount basado en el precio del producto
+            $inc: { totalAmount: producto.price }, // Incrementar el totalAmount basado en el precio del producto
           },
           { new: true }
         );
@@ -116,7 +127,7 @@ export class CartDao {
           carritoId,
           {
             $push: { carrito: { productID: productoId, cant: 1 } },
-            $inc: { totalAmount: producto.price } // Incrementar el totalAmount basado en el precio del producto
+            $inc: { totalAmount: producto.price }, // Incrementar el totalAmount basado en el precio del producto
           },
           { new: true }
         );

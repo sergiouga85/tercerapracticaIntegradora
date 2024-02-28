@@ -90,3 +90,18 @@ export const passwordReset = async (req, res, next) => {
     return res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
+
+export  const changeUserRole= async(req, res)=> {
+    try {
+      const userId = req.params.uid;
+      const newRole = req.body.role; // El nuevo rol, puede ser 'premium' o 'user'
+  
+      // Utilizar usersDao para cambiar el rol del usuario en la base de datos
+      const updatedUser = await usersDao.cambiarRolUsuario(userId, newRole);
+  
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
